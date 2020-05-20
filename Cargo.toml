@@ -1,0 +1,24 @@
+[package]
+authors = ["David Peter <mail@david-peter.de>"]
+categories = ["command-line-utilities"]
+description = "A command-line hex viewer"
+homepage = "https://github.com/sharkdp/hexyl"
+license = "MIT/Apache-2.0"
+name = "hexyl"
+readme = "README.md"
+repository = "https://github.com/sharkdp/hexyl"
+version = "0.7.0"
+edition = "2018"
+
+[dependencies]
+ansi_term = "0.12"
+atty = "0.2"
+libc = "0.2"
+
+[dependencies.clap]
+version = "2"
+features = ["suggestions", "color", "wrap_help"]
+
+[profile.release]
+lto = true
+codegen-units = 1
