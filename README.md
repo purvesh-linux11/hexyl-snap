@@ -31,7 +31,7 @@ If you use an older version of Ubuntu, you can download
 the latest `.deb` package from the release page and install it via:
 
 ``` bash
-sudo dpkg -i hexyl_0.7.0_amd64.deb  # adapt version number and architecture
+sudo dpkg -i hexyl_0.8.0_amd64.deb  # adapt version number and architecture
 ```
 
 ### On Debian
@@ -52,6 +52,11 @@ You can install `hexyl` from [the official package repository](https://www.archl
 pacman -S hexyl
 ```
 
+### On Void Linux
+```
+xbps-install hexyl
+```
+
 ### On macOS
 
 ```
@@ -62,6 +67,15 @@ brew install hexyl
 
 ```
 pkg install hexyl
+```
+
+### on Termux
+```
+pkg install hexyl
+```
+or 
+```
+apt install hexyl
 ```
 
 ### Via Nix
@@ -82,10 +96,18 @@ or Windows Terminal since Windows 10 1903).
 
 ### Via cargo
 
-If you have Rust 1.36 or higher, you can install `hexyl` from source via `cargo`:
+If you have Rust 1.39 or higher, you can install `hexyl` from source via `cargo`:
 ```
 cargo install hexyl
 ```
+
+### Via snap package
+
+```
+sudo snap install hexyl
+```
+
+[Get it from the Snap Store](https://snapcraft.io/hexyl)
 
 ## License
 

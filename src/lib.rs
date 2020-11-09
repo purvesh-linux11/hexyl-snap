@@ -34,10 +34,7 @@ impl Byte {
     fn category(self) -> ByteCategory {
         if self.0 == 0x00 {
             ByteCategory::Null
-        } else if self.0.is_ascii_alphanumeric()
-            || self.0.is_ascii_punctuation()
-            || self.0.is_ascii_graphic()
-        {
+        } else if self.0.is_ascii_graphic() {
             ByteCategory::AsciiPrintable
         } else if self.0.is_ascii_whitespace() {
             ByteCategory::AsciiWhitespace
@@ -142,7 +139,7 @@ impl BorderStyle {
 }
 
 pub struct Printer<'a, Writer: Write> {
-    idx: usize,
+    idx: u64,
     /// The raw bytes used as input for the current line.
     raw_line: Vec<u8>,
     /// The buffered line built with each byte, ready to print to writer.
@@ -154,7 +151,7 @@ pub struct Printer<'a, Writer: Write> {
     byte_hex_table: Vec<String>,
     byte_char_table: Vec<String>,
     squeezer: Squeezer,
-    display_offset: usize,
+    display_offset: u64,
 }
 
 impl<'a, Writer: Write> Printer<'a, Writer> {
@@ -197,7 +194,7 @@ impl<'a, Writer: Write> Printer<'a, Writer> {
         }
     }
 
-    pub fn display_offset(&mut self, display_offset: usize) -> &mut Self {
+    pub fn display_offset(&mut self, display_offset: u64) -> &mut Self {
         self.display_offset = display_offset;
         self
     }
@@ -247,7 +244,7 @@ impl<'a, Writer: Write> Printer<'a, Writer> {
         }
 
         let style = COLOR_OFFSET.normal();
-        let byte_index = format!("{:08x}", (self.idx - 1) + self.display_offset);
+        let byte_index = format!("{:08x}", self.idx - 1 + self.display_offset);
         let formatted_string = if self.show_color {
             format!("{}", style.paint(byte_index))
         } else {
@@ -411,7 +408,7 @@ impl<'a, Writer: Write> Printer<'a, Writer> {
     pub fn print_all<Reader: Read>(
         &mut self,
         mut reader: Reader,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let mut buffer = [0; BUFFER_SIZE];
         'mainloop: loop {
             let size = reader.read(&mut buffer)?;
@@ -431,8 +428,14 @@ impl<'a, Writer: Write> Printer<'a, Writer> {
 
         // Finish last line
         self.print_textline().ok();
+
         if !self.header_was_printed() {
             self.header();
+            writeln!(
+                self.writer,
+                "│        │ No content to print     │                         │        │        │"
+            )
+            .ok();
         }
         self.footer();
 
@@ -460,36 +463,37 @@ mod tests {
     #[test]
     fn empty_file_passes() {
         let input = io::empty();
-        let expected_string =
-            "┌────────┬─────────────────────────┬─────────────────────────┬────────┬────────┐
+        let expected_string = "\
+┌────────┬─────────────────────────┬─────────────────────────┬────────┬────────┐
+│        │ No content to print     │                         │        │        │
 └────────┴─────────────────────────┴─────────────────────────┴────────┴────────┘
 "
-            .to_owned();
+        .to_owned();
         assert_print_all_output(input, expected_string);
     }
 
     #[test]
     fn short_input_passes() {
         let input = io::Cursor::new(b"spam");
-        let expected_string =
-            "┌────────┬─────────────────────────┬─────────────────────────┬────────┬────────┐
+        let expected_string = "\
+┌────────┬─────────────────────────┬─────────────────────────┬────────┬────────┐
 │00000000│ 73 70 61 6d             ┊                         │spam    ┊        │
 └────────┴─────────────────────────┴─────────────────────────┴────────┴────────┘
 "
-            .to_owned();
+        .to_owned();
         assert_print_all_output(input, expected_string);
     }
 
     #[test]
     fn display_offset() {
         let input = io::Cursor::new(b"spamspamspamspamspam");
-        let expected_string =
-            "┌────────┬─────────────────────────┬─────────────────────────┬────────┬────────┐
+        let expected_string = "\
+┌────────┬─────────────────────────┬─────────────────────────┬────────┬────────┐
 │deadbeef│ 73 70 61 6d 73 70 61 6d ┊ 73 70 61 6d 73 70 61 6d │spamspam┊spamspam│
 │deadbeff│ 73 70 61 6d             ┊                         │spam    ┊        │
 └────────┴─────────────────────────┴─────────────────────────┴────────┴────────┘
 "
-            .to_owned();
+        .to_owned();
 
         let mut output = vec![];
         let mut printer: Printer<Vec<u8>> =
